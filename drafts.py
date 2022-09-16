@@ -85,13 +85,13 @@ def gc_coupler(angle=0, length=50, width=5, period=0.3, ff=0.5):
         #nd.put_stub()
 
     return C
-def mmi(    width2 = 2,
+def mmi(    width2 = 1,
     input_wg_length = 5,
     length_input_taper = 10,
-    output_width = 2,
-    bb_length = 16.172,
-    width_bb = 5,
-    width1 = 0.8,
+    output_width = 1.1,
+    bb_length = 32,
+    width_bb = 8,
+    width1 = 0.45,
     output_taper_length = 10,
     output_wg_length = 10,
             port = 1):
@@ -105,24 +105,41 @@ def mmi(    width2 = 2,
         ic2.strt(length=bb_length, width=width_bb).put()
 
 
-        ic2.taper(length=output_taper_length, width1=width2, width2=width1).put(length_output, 1.32)
+        output_taper_1 = ic2.taper(length=output_taper_length, width1=width2, width2=width1).put(length_output, width_bb/2-0.8)
 
-        output_taper = ic2.taper(length=output_taper_length, width1=output_width, width2=width1).put(length_output, -1.32)
+        output_taper_2 = ic2.taper(length=output_taper_length, width1=output_width, width2=width1).put(length_output, -width_bb/2+0.8)
 
 
         p1 = nd.Pin(name='input', show=True).put(input_strt.pin['a0'])
-        p2 = nd.Pin(name='output', show=True).put(output_taper.pin['b0'])
+        p2 = nd.Pin(name='output_2', show=True).put(output_taper_2.pin['b0'])
+        p3 = nd.Pin(name='output_1', show=True).put(output_taper_1.pin['b0'])
+
     return C
+
+def pixel(length_Rx = 70 , length_Tx=50 , gc_width=4, tap_width1=4 ,tap_width2=0.45 , distance_between=4):
+    with nd.Cell(name='pixe') as C:
+        gc_0_Tx = gc_coupler(width=gc_width, length=length_Tx,angle=0).put(0, 0)
+        gc_0_Rx = gc_coupler(width=gc_width, length=length_Rx, angle=0).put(0, 2*distance_between)
+
+        taper_gc_0_Tx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Tx.pin['a0'], 0, 0)
+        taper_gc_0_Tx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Tx.pin['b0'], 0, 0)
+
+        taper_gc_0_Rx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Rx.pin['a0'], 0, 0)
+        taper_gc_0_Rx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Rx.pin['b0'], 0, 0)
+
+    return C
+
 
 if __name__ == '__main__':
     with nd.Cell(name='topcell') as topcell:
         from nazca.pathfinder import findpath
+        #can make a function of cascaded mmi
+        pixeL_1 = pixel()
 
-        mmi1 = mmi()
-        mmi2= mmi()
-        xxx = mmi1.put()
-        mmi2.put(xxx.pin['output'],0,0)
-    nd.export_gds(topcell, 'xxx.gds')
+
+
+
+    nd.export_plt(topcell, 'xxx.gds')
 
 
 #FINISH THIS ON SUNDAY
