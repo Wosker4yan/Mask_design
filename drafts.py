@@ -109,23 +109,36 @@ def mmi(    width2 = 1,
 
         output_taper_2 = ic2.taper(length=output_taper_length, width1=output_width, width2=width1).put(length_output, -width_bb/2+0.8)
 
-
+        #this is how you connect the pins
+        #also need to learn how to PUT from gds
         p1 = nd.Pin(name='input', show=True).put(input_strt.pin['a0'])
         p2 = nd.Pin(name='output_2', show=True).put(output_taper_2.pin['b0'])
         p3 = nd.Pin(name='output_1', show=True).put(output_taper_1.pin['b0'])
 
     return C
 
-def pixel(length_Rx = 70 , length_Tx=50 , gc_width=4, tap_width1=4 ,tap_width2=0.45 , distance_between=4):
-    with nd.Cell(name='pixe') as C:
-        gc_0_Tx = gc_coupler(width=gc_width, length=length_Tx,angle=0).put(0, 0)
-        gc_0_Rx = gc_coupler(width=gc_width, length=length_Rx, angle=0).put(0, 2*distance_between)
+def pixel(angle=0, length_Rx = 70 , length_Tx=50 , gc_width=4, tap_width1=4 ,tap_width2=0.45 , distance_between=4, bend_offset=0, sbend_offset = 10):
+    with nd.Cell(name='pixel') as C:
+        gc_0_Tx = gc_coupler(width=gc_width, length=length_Tx,angle=angle).put(0, 0)
+        gc_0_Rx = gc_coupler(width=gc_width, length=length_Rx, angle=angle).put(0, 4+distance_between+gc_width/2+distance_between-0.6751449)
 
-        taper_gc_0_Tx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Tx.pin['a0'], 0, 0)
-        taper_gc_0_Tx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Tx.pin['b0'], 0, 0)
+        taper_gc_0_Tx_input = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Tx.pin['a0'], 0, 0)
+        taper_gc_0_Tx_output = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Tx.pin['b0'], 0, 0)
+        s_bend_out = ic2.sbend(width = tap_width2, offset = sbend_offset).put(taper_gc_0_Tx_input.pin['b0'])
 
-        taper_gc_0_Rx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Rx.pin['a0'], 0, 0)
-        taper_gc_0_Rx = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Rx.pin['b0'], 0, 0)
+        p_TX_0 =  nd.Pin(name='input', show=True).put(s_bend_out.pin['b0'])
+
+        taper_gc_0_Rx_input = ic2.taper(width1=tap_width1, width2=tap_width2, length=10).put(gc_0_Rx.pin['a0'], 0, 0)
+
+
+        strt_Rx = ic2.strt(width = tap_width2,length = 2).put(taper_gc_0_Rx_input.pin['b0'],0,0)
+        bend_RX = ic2.bend(width = tap_width2,radius=3.35,angle=180, offset=bend_offset) .put(strt_Rx.pin['b0'],0,0)
+        length_for_bend = length_Rx + 10 + 2 +4 #radius, strt and taper
+        strt_after_bend = ic2.strt(width = tap_width2,length = length_for_bend).put(bend_RX.pin['b0'],0,0)
+
+
+        p_RX = nd.Pin(name='output', show=True).put(strt_after_bend.pin['b0'])
+
 
     return C
 
@@ -134,12 +147,26 @@ if __name__ == '__main__':
     with nd.Cell(name='topcell') as topcell:
         from nazca.pathfinder import findpath
         #can make a function of cascaded mmi
-        pixeL_1 = pixel()
+        width = 0.45
+
+        pixel0 = pixel()
+        pixel_0 =pixel0.put()
+
+        mmi = mmi()
+        mmi_1 = mmi.put('output_1', pixel_0.pin['input'])
+
+        pixel1 = pixel(sbend_offset=-10)
+        pixel_1 =pixel1.put('input', mmi_1.pin['output_2'],0,-40)
+
+
+        pixel2 = pixel()
+        pixel3 = pixel()
 
 
 
 
+
+    #nd.export_plt(topcell, 'xxx.gds')
     nd.export_plt(topcell, 'xxx.gds')
-
-
+    #nd.export_gds(topcell, 'xxx.gds')
 #FINISH THIS ON SUNDAY
