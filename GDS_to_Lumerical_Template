@@ -1,0 +1,29 @@
+# DC_GDS_import.lsf - Script to import GDS for 3D FDTD simulations in Lumerical Solutions
+#Template made by Lukas Chrostowski
+newproject;
+filename = "REPLACE WITH PATH";
+cellname = "DC_0";
+
+
+n = gdsimport(filename, cellname, 1, Material_Si, 0, Thickness_Si);
+if (n==0) { delete; } else {
+	groupscope("::model::GDS_LAYER_1");
+	set("script","");
+	selectall;
+	set('material', "Si (Silicon) - Palik");
+	set('z span',Thickness_Si); 	 set('z',0);
+	selectpartial("poly");
+	minvx=1e9; minvy=1e9; maxvx=-1e9; maxvy=-1e9;
+	for (i=1:getnumber) {	# find the extent of this GDS layer.
+		v=get("vertices",i);	  a=size(v);
+		minvx = min ( [minvx, min( v(1:a(1), 1 ))]);
+        minvy = min ( [minvy, min( v(1:a(1), 2 ))]);
+		maxvx = max ( [maxvx, max( v(1:a(1), 1 ))]);
+		maxvy = max ( [maxvy, max( v(1:a(1), 2 ))]);
+	}
+	minvxWAFER = min ( [minvx, minvxWAFER]);	# save design extent
+	minvyWAFER = min ( [minvy-2.25e-6, minvyWAFER]);
+	maxvxWAFER = max ( [maxvx, maxvxWAFER]);
+	maxvyWAFER = max ( [maxvy+2.25e-6, maxvyWAFER]);
+	groupscope("::model");
+}
