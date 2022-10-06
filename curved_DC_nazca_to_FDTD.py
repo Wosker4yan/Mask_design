@@ -1,6 +1,9 @@
 from IPython import get_ipython
 
-#PROGRAM TO PUT A MASK INTO SIMULATION NAZCA
+"""
+Broadband Silicon-On-Insulator directional couplers using a
+combination of straight and curved waveguide sections
+George F. R Chen et al"""
 
 get_ipython().magic('reset -sf')
 import math
