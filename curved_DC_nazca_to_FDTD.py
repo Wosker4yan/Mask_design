@@ -4,6 +4,17 @@ from IPython import get_ipython
 Broadband Silicon-On-Insulator directional couplers using a
 combination of straight and curved waveguide sections
 George F. R Chen et al"""
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Oct  6 13:09:02 2022
+
+@author: Varahm
+"""
+
+# setting up the gds for the directional coupler
+
+
+from IPython import get_ipython
 
 get_ipython().magic('reset -sf')
 import math
@@ -19,7 +30,7 @@ sys.path.append('C:/Users/Varahm\Desktop/simulations/curved DC')
 cwd = os.getcwd()
 save_path = cwd
 
-angles = np.linspace(4, 20, 41)
+angles = [5, 10, 11, 12, 13, 15, 20]
 T1 = []
 T2 = []
 difference = []
@@ -40,7 +51,7 @@ for angle in angles:
         R1 = Rc + 0.5 * (gap + w1)
         alfa = angle
         beta = 2 * alfa
-        length_arm_up = 5
+        length_arm_up = 10
         length_arm_down = 5
         FDTD_above = 300e-9;
         FDTD_below = 300e-9;
@@ -57,8 +68,10 @@ for angle in angles:
         strt1 = ic.strt(length=length_arm_up, width=w1).put(e1.pin['a0'])
         e2 = ic.bend(angle=-alfa, radius=R1).put(e1.pin['b0'])
         e2.raise_pins(['a0', 'b0'], ['a0', 'b0'])
+
         get_last_xe2 = e2.pin['b0'].x
         get_last_ye2 = e2.pin['b0'].y
+
         e3 = ic.bend(angle=-alfa, radius=R1).put(e2.pin['b0'])
         e3.raise_pins(['a0', 'b0'], ['a0', 'b0'])
         e4 = ic.bend(angle=alfa, radius=2).put(e3.pin['b0'])
@@ -74,6 +87,7 @@ for angle in angles:
 
         e5 = ic.bend(angle=-beta, radius=R2).put(get_last_xe2, get_last_ye2 - w1 - gap)
         e5.raise_pins(['a0', 'b0'], ['a0', 'b0'])
+
         e6 = ic.bend(angle=beta, radius=R2).put(e5.pin['a0'])
         e6.raise_pins(['a0', 'b0'], ['a0', 'b0'])
         e7 = ic.bend(angle=-2 * alfa, radius=2).put(e6.pin['b0'])
@@ -83,15 +97,18 @@ for angle in angles:
         strt3 = ic.strt(length=abs(get_x_input_1 - e7.pin['b0'].x), width=w1).put(e7.pin['b0'])
         strt4 = ic.strt(length=get_x_output_1 - e8.pin['b0'].x, width=w1).put(e8.pin['b0'])
 
+        get_down_bend_pin = strt4.pin['b0'].y
+
         get_x_input_2 = strt3.pin['b0'].x
         get_x_output_2 = strt4.pin['b0'].x
         get_y_input_2 = strt3.pin['b0'].y
         get_y_output_2 = strt4.pin['b0'].y
 
-        get_mesh_in = strt3.pin['a0'].x
-        get_mesh_out = strt4.pin['a0'].x
+        get_x_min_mesh = strt1.pin['a0'].x
+        get_x_max_mesh = strt2.pin['a0'].x
+
         mesh_y_max = get_last_ye2
-        mesh_y_min = get_y_input_2
+        mesh_y_min = get_down_bend_pin - w1 / 2
 
     nd.export_gds(topcell, 'xxx.gds')
     nd.export_plt(topcell, 'xxx.gds')
@@ -112,10 +129,10 @@ for angle in angles:
     fdtd.save(filename)
 
     fdtd.addfdtd(  # FDTD simulation volume
-        x_min=(get_x_input_1) * 1e-6,
-        x_max=(get_x_output_2) * 1e-6,
-        y_min=(mesh_y_min - w1 * 2) * 1e-6,
-        y_max=(mesh_y_max + w1 * 2) * 1e-6,
+        x_min=get_x_input_2 * 1e-6,
+        x_max=get_x_output_2 * 1e-6,
+        y_min=get_y_input_2 * 1e-6 - w1 * 1e-6 - 0.5e-6,
+        y_max=mesh_y_max * 1e-6 + 1e-6,
         z_min=-FDTD_below,
         z_max=maxvzWAFER + FDTD_above,
         mesh_accuracy=3,
@@ -127,10 +144,10 @@ for angle in angles:
         z_max_bc="metal")
 
     fdtd.addmesh(
-        x_min=get_mesh_in * 1e-6 + 1e-6,
-        x_max=get_mesh_out * 1e-6,
+        x_min=get_x_min_mesh * 1e-6,
+        x_max=get_x_max_mesh * 1e-6,
         y_max=(mesh_y_max + w1 / 2) * 1e-6,
-        y_min=(mesh_y_min - w1 / 2) * 1e-6,
+        y_min=mesh_y_min * 1e-6,
         z_min=0,
         z_max=Thickness_Si,
         override_y_mesh=1,
@@ -200,6 +217,10 @@ for angle in angles:
 # fig2.tight_layout()
 # fig2.show()
 #
-wavelength_span = np.linspace(1500, 1600, 21)
-plt.plot(wavelength_span, T1[0])
-plt.plot(wavelength_span, T2[0])
+
+plt.plot(wavelength_span * 10e8, T1[16], label='T1')
+plt.plot(wavelength_span * 10e8, T2[16], label='T2')
+plt.title('alfa 10.4 degrees')
+plt.xlabel('wavelength [nm]')
+plt.ylabel('Transmission')
+plt.legend()
